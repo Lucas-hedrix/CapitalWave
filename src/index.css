@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Roboto", system-ui, sans-serif;
+  --color-navy: #0a0e17;
+  --color-navy-light: #121826;
+  --color-navy-lighter: #1a2235;
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --background: #0a0e17;
+    --foreground: #f8fafc;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    @apply antialiased min-h-screen selection:bg-primary/30;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-navy-light/80 backdrop-blur-md border border-white/5 rounded-xl;
+  }
+  .trade-btn {
+    @apply transition-all active:scale-95 font-medium rounded-lg px-4 py-2 flex items-center justify-center;
+  }
+}
