@@ -14,6 +14,7 @@ import PortfolioScreen from './pages/PortfolioScreen';
 import Login from './pages/Login';
 import Withdraw from './pages/Withdraw';
 import AuthGuard from './components/auth/AuthGuard';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 // Lazy load pages for now, or just placeholders if we haven't built them
 function Placeholder({ title }: { title: string }) {
@@ -122,6 +123,7 @@ export default function App() {
           </Route>
         </Routes>
       </Router>
+      <SpeedInsights />
     </ErrorBoundary>
   );
 }
