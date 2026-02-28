@@ -37,10 +37,10 @@ export default function Login() {
         };
         
         await emailjs.send(
-          'YOUR_SERVICE_ID', // Replace with EmailJS Service ID
-          'YOUR_TEMPLATE_ID', // Replace with EmailJS Template ID
+          'service_yuzbn9h', // Replace with EmailJS Service ID
+          'template_mpzz8vd', // Replace with EmailJS Template ID
           templateParams,
-          'YOUR_PUBLIC_KEY' // Replace with EmailJS Public Key
+          'd0OKESNp1W9vZJOgj' // Replace with EmailJS Public Key
         );
         console.log('Login notification email sent successfully.');
       } catch (emailErr) {
