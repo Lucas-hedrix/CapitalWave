@@ -3,7 +3,7 @@ import { useUserStore } from '../../store/useUserStore';
 
 // Add the admin emails here. I am hardcoding a placeholder email for now as I did not get a specific email from the user.
 // The user will need to update this with their actual admin email.
-export const ADMIN_EMAILS = ['gishisrael432@gmail.com', '']; 
+export const ADMIN_EMAILS = ['gishisrael432@gmail.com']; 
 
 interface AdminGuardProps {
   children: React.ReactNode;
