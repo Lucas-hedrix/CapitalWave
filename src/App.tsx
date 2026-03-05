@@ -118,6 +118,9 @@ export default function App() {
 
           <Route element={<AuthGuard><Outlet /></AuthGuard>}>
             <Route path="/deposit" element={<Deposit />} />
+            <Route element={<AppLayout />}>
+              <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
+            </Route>
             <Route element={<DepositGuard><AppLayout /></DepositGuard>}>
               <Route path="/dashboard" element={<TradingDashboard />} />
               <Route path="/portfolio" element={<PortfolioScreen />} />
@@ -125,7 +128,6 @@ export default function App() {
               <Route path="/transfer" element={<Withdraw />} />
               <Route path="/settings" element={<Placeholder title="Settings" />} />
               <Route path="/kyc" element={<KYC />} />
-              <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
             </Route>
           </Route>
         </Routes>
