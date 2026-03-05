@@ -95,7 +95,9 @@ export default function Deposit() {
 
       if (error) throw error;
 
-      setDepositStatus('pending');
+      if (depositStatus !== 'approved') {
+        setDepositStatus('pending');
+      }
       toast.success('Deposit submitted successfully! Awaiting approval.');
       setAmount('');
       setReceiptBase64(null);

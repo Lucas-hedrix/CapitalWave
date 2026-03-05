@@ -19,22 +19,25 @@ export default function DepositGuard({ children }: { children: React.ReactNode }
       }
 
       try {
-        // Fetch the user's latest deposit
+        // Fetch all of the user's deposits
         const { data, error } = await supabase
           .from('deposits')
           .select('status')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .eq('user_id', user.id);
 
         if (error) {
           console.error('Error fetching deposit:', error);
         }
 
         if (isMounted) {
-          if (data) {
-            setDepositStatus(data.status as 'pending' | 'approved');
+          if (data && data.length > 0) {
+            if (data.some(d => d.status === 'approved')) {
+              setDepositStatus('approved');
+            } else if (data.some(d => d.status === 'pending')) {
+              setDepositStatus('pending');
+            } else {
+              setDepositStatus('none');
+            }
           } else {
             setDepositStatus('none');
           }
