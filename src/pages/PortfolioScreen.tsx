@@ -45,13 +45,44 @@ export default function PortfolioScreen() {
         .order('created_at', { ascending: false });
       if (posData) setPositions(posData);
 
-      // Fetch Transactions
+      // Fetch Transactions (Trades & Withdrawals)
       const { data: txData } = await supabase
         .from('transactions')
         .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      if (txData) setTransactions(txData);
+        .eq('user_id', user.id);
+
+      // Fetch Deposits
+      const { data: depData } = await supabase
+        .from('deposits')
+        .select('*')
+        .eq('user_id', user.id);
+
+      // Consolidate into a single history array
+      let history: any[] = [];
+      
+      if (txData) {
+        history = [...history, ...txData];
+      }
+      
+      if (depData) {
+        // Map deposits to match the transaction interface roughly for the table
+        const formattedDeposits = depData.map(dep => ({
+          id: `dep-${dep.id}`,
+          type: 'Deposit',
+          asset_symbol: dep.currency,
+          quantity: 1,
+          price: dep.amount,
+          total_value: dep.amount,
+          status: dep.status,
+          created_at: dep.created_at
+        }));
+        history = [...history, ...formattedDeposits];
+      }
+
+      // Sort by newest first
+      history.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      
+      setTransactions(history);
     };
 
     fetchData();
@@ -281,18 +312,32 @@ export default function PortfolioScreen() {
                     <tr key={txn.id} className="hover:bg-white/5 transition-colors">
                       <td className="p-4">
                         <span className={clsx(
-                          "px-2 py-1 text-xs font-bold rounded-md",
+                          "px-2 py-1 text-xs font-bold rounded-md inline-flex items-center gap-1",
                           txn.type === 'Buy' ? "bg-success/20 text-success" :
                           txn.type === 'Sell' ? "bg-danger/20 text-danger" :
-                          "bg-primary/20 text-primary"
+                          txn.type === 'Deposit' ? "bg-emerald-500/20 text-emerald-400" :
+                          "bg-primary/20 text-primary" // Default e.g. Withdrawal
                         )}>
                           {txn.type}
                         </span>
                       </td>
-                      <td className="p-4 text-white font-medium">{Number(txn.quantity).toLocaleString()} <span className="text-slate-500">{txn.asset_symbol}</span></td>
-                      <td className="p-4 text-slate-300">${Number(txn.price).toLocaleString()}</td>
+                      <td className="p-4 text-white font-medium">
+                        {txn.type !== 'Deposit' && txn.type !== 'Withdrawal' ? `${Number(txn.quantity).toLocaleString()} ` : ''}
+                        <span className="text-slate-500">{txn.asset_symbol}</span>
+                      </td>
+                      <td className="p-4 text-slate-300">
+                        {txn.type === 'Deposit' || txn.type === 'Withdrawal' ? '$' : ''}{Number(txn.price).toLocaleString()}
+                      </td>
                       <td className="p-4 text-sm text-slate-400">{new Date(txn.created_at).toLocaleString()}</td>
-                      <td className="p-4 text-right text-sm text-slate-300">{txn.status}</td>
+                      <td className="p-4 text-right">
+                        <span className={clsx(
+                          "text-sm font-medium capitalize",
+                          txn.status === 'approved' || txn.status === 'completed' ? "text-success" : 
+                          txn.status === 'pending' ? "text-amber-400" : "text-slate-300"
+                        )}>
+                          {txn.status}
+                        </span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

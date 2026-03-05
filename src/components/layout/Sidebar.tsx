@@ -7,15 +7,22 @@ import {
   LogOut,
   LineChart,
   ArrowDownCircle,
-  ShieldCheck
+  ShieldCheck,
+  ShieldAlert
 } from 'lucide-react';
 import clsx from 'clsx';
+
+import { useUserStore } from '../../store/useUserStore';
+import { ADMIN_EMAILS } from '../auth/AdminGuard';
 
 interface SidebarProps {
   isOpen: boolean;
 }
 
 export default function Sidebar({ isOpen }: SidebarProps) {
+  const { user } = useUserStore();
+  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email);
+
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
     { name: 'Portfolio', icon: Wallet, path: '/portfolio' },
@@ -24,6 +31,10 @@ export default function Sidebar({ isOpen }: SidebarProps) {
     { name: 'Deposit', icon: ArrowDownCircle, path: '/deposit' },
     { name: 'Withdraw', icon: ArrowRightLeft, path: '/transfer' },
   ];
+
+  if (isAdmin) {
+    navItems.push({ name: 'Admin Dashboard', icon: ShieldAlert, path: '/admin' });
+  }
 
   return (
     <aside

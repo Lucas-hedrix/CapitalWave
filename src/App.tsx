@@ -16,8 +16,10 @@ import Withdraw from './pages/Withdraw';
 import Deposit from './pages/Deposit';
 import KYC from './pages/KYC';
 import Markets from './pages/Markets';
+import AdminDashboard from './pages/AdminDashboard';
 import AuthGuard from './components/auth/AuthGuard';
 import DepositGuard from './components/auth/DepositGuard';
+import AdminGuard from './components/auth/AdminGuard';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 
 // Lazy load pages for now, or just placeholders if we haven't built them
@@ -123,6 +125,7 @@ export default function App() {
               <Route path="/transfer" element={<Withdraw />} />
               <Route path="/settings" element={<Placeholder title="Settings" />} />
               <Route path="/kyc" element={<KYC />} />
+              <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
             </Route>
           </Route>
         </Routes>
