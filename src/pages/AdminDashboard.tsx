@@ -53,12 +53,15 @@ export default function AdminDashboard() {
     setDeposits(prev => prev.map(d => d.id === id ? { ...d, status: newStatus } : d));
     
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('deposits')
         .update({ status: newStatus })
-        .eq('id', id);
+        .eq('id', id)
+        .select();
 
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error('Update blocked by RLS');
+      
       toast.success(`Deposit marked as ${newStatus}`);
     } catch (error: any) {
       console.error('Update failed:', error);
@@ -72,12 +75,15 @@ export default function AdminDashboard() {
      setKycdocs(prev => prev.map(d => d.id === id ? { ...d, status: newStatus } : d));
     
      try {
-       const { error } = await supabase
+       const { data, error } = await supabase
          .from('kyc_documents')
          .update({ status: newStatus })
-         .eq('id', id);
+         .eq('id', id)
+         .select();
  
        if (error) throw error;
+       if (!data || data.length === 0) throw new Error('Update blocked by RLS');
+
        toast.success(`KYC marked as ${newStatus}`);
      } catch (error: any) {
        console.error('Update failed:', error);
