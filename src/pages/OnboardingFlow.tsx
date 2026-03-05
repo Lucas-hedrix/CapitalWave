@@ -71,34 +71,40 @@ export default function OnboardingFlow() {
     }
 
     if (currentStep === 1) {
-      // Step 2: KYC Upload Check
-      if (!kycBase64) {
-        toast.error('Please upload your ID to continue.');
-        return;
-      }
-      
       const user = useUserStore.getState().user;
       if (!user) return;
       
       setLoading(true);
-      try {
-        const { error } = await supabase
-          .from('kyc_documents')
-          .insert({
-            user_id: user.id,
-            document_url: kycBase64,
-            status: 'pending'
-          });
 
-        if (error) throw error;
-        useUserStore.getState().setKycStatus('pending');
-        
-        toast.success('Account created and ID submitted for review!');
-        navigate('/dashboard');
-      } catch (err: any) {
-        toast.error(err.message || 'Failed to submit ID.');
-      } finally {
+      // If they uploaded an ID, submit it to KYC table
+      if (kycBase64) {
+        try {
+          const { error } = await supabase
+            .from('kyc_documents')
+            .insert({
+              user_id: user.id,
+              document_url: kycBase64,
+              status: 'pending'
+            });
+
+          if (error) throw error;
+          useUserStore.getState().setKycStatus('pending');
+          toast.success('Account created and ID submitted for review!');
+        } catch (err: any) {
+          toast.error(err.message || 'Failed to submit ID.');
+        } finally {
+          setLoading(false);
+          // Navigate to dashboard regardless of whether ID submission failed or succeeded, 
+          // because the account itself was successfully created in Step 1.
+          navigate('/dashboard');
+        }
+      } else {
+        // Skipped ID Upload
         setLoading(false);
+        useUserStore.getState().setKycStatus('none');
+        // No warning given; just welcome them. They will find out when they try to withdraw.
+        toast.success('Account created successfully!');
+        navigate('/dashboard');
       }
       return;
     }
@@ -183,14 +189,25 @@ export default function OnboardingFlow() {
             </Link>
           )}
 
-          <button
-            onClick={handleNext}
-            disabled={loading}
-            className="flex items-center gap-2 bg-white text-navy font-bold py-3 px-6 rounded-lg hover:bg-slate-200 transition-all active:scale-95 disabled:opacity-50"
-          >
-            {loading ? 'Processing...' : currentStep === STEPS.length - 1 ? 'Complete Setup' : 'Continue'}
-            {!loading && currentStep < STEPS.length - 1 && <ChevronRight className="w-5 h-5" />}
-          </button>
+          <div className="flex items-center gap-4">
+            {currentStep === 1 && !kycBase64 && (
+              <button
+                onClick={handleNext}
+                disabled={loading}
+                className="text-sm text-slate-400 hover:text-white transition-colors"
+              >
+                Skip for now
+              </button>
+            )}
+            <button
+              onClick={handleNext}
+              disabled={loading}
+              className="flex items-center gap-2 bg-white text-navy font-bold py-3 px-6 rounded-lg hover:bg-slate-200 transition-all active:scale-95 disabled:opacity-50"
+            >
+              {loading ? 'Processing...' : (currentStep === 1 && !kycBase64) ? 'Skip for now' : currentStep === STEPS.length - 1 ? 'Complete Setup' : 'Continue'}
+              {!loading && currentStep < STEPS.length - 1 && <ChevronRight className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
 
       </div>

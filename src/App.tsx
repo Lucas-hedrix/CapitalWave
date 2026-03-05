@@ -14,6 +14,8 @@ import PortfolioScreen from './pages/PortfolioScreen';
 import Login from './pages/Login';
 import Withdraw from './pages/Withdraw';
 import Deposit from './pages/Deposit';
+import KYC from './pages/KYC';
+import Markets from './pages/Markets';
 import AuthGuard from './components/auth/AuthGuard';
 import DepositGuard from './components/auth/DepositGuard';
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -117,9 +119,10 @@ export default function App() {
             <Route element={<DepositGuard><AppLayout /></DepositGuard>}>
               <Route path="/dashboard" element={<TradingDashboard />} />
               <Route path="/portfolio" element={<PortfolioScreen />} />
-              <Route path="/markets" element={<Placeholder title="Markets Overview" />} />
+              <Route path="/markets" element={<Markets />} />
               <Route path="/transfer" element={<Withdraw />} />
               <Route path="/settings" element={<Placeholder title="Settings" />} />
+              <Route path="/kyc" element={<KYC />} />
             </Route>
           </Route>
         </Routes>

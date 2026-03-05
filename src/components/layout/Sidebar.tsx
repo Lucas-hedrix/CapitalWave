@@ -6,7 +6,8 @@ import {
   Settings, 
   LogOut,
   LineChart,
-  ArrowDownCircle
+  ArrowDownCircle,
+  ShieldCheck
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -19,6 +20,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
     { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
     { name: 'Portfolio', icon: Wallet, path: '/portfolio' },
     { name: 'Markets', icon: LineChart, path: '/markets' },
+    { name: 'Identity (KYC)', icon: ShieldCheck, path: '/kyc' },
     { name: 'Deposit', icon: ArrowDownCircle, path: '/deposit' },
     { name: 'Withdraw', icon: ArrowRightLeft, path: '/transfer' },
   ];
