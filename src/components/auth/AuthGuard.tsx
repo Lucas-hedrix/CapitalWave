@@ -10,18 +10,42 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const location = useLocation();
 
   useEffect(() => {
+    // Internal helper to fetch both session and KYC Status
+    const updateSessionAndKyc = async (currentSession: any) => {
+      setSession(currentSession);
+      const currentUser = currentSession?.user ?? null;
+      setUser(currentUser);
+
+      if (currentUser) {
+        // Fetch the user's latest KYC document
+        const { data } = await supabase
+          .from('kyc_documents')
+          .select('status')
+          .eq('user_id', currentUser.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (data) {
+          useUserStore.getState().setKycStatus(data.status as 'pending' | 'approved' | 'rejected');
+        } else {
+          useUserStore.getState().setKycStatus('none');
+        }
+      } else {
+        useUserStore.getState().setKycStatus('none');
+      }
+      
+      setIsLoading(false);
+    };
+
     // Check active sessions and sets the user
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      setIsLoading(false);
+      updateSessionAndKyc(currentSession);
     });
 
     // Listen for changes on auth state (log in, log out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      setIsLoading(false);
+      updateSessionAndKyc(currentSession);
     });
 
     return () => subscription.unsubscribe();

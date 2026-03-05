@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Wallet, ArrowUpRight, AlertCircle, DollarSign, Loader2 } from 'lucide-react';
+import { Wallet, ArrowUpRight, AlertCircle, DollarSign, Loader2, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react';
 import { useUserStore } from '../store/useUserStore';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 
 export default function Withdraw() {
-  const { user } = useUserStore();
+  const { user, kycStatus } = useUserStore();
   const [amount, setAmount] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -128,6 +128,33 @@ export default function Withdraw() {
           {/* Subtle background glow */}
           <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
+          {kycStatus === 'pending' && (
+            <div className="mb-6 p-4 rounded-xl bg-warning/10 border border-warning/20 flex gap-3 text-warning items-start">
+              <ShieldAlert className="w-6 h-6 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold mb-1">Identity Verification Pending</h3>
+                <p className="text-sm opacity-90">Your ID is currently under review. Withdrawals will be unlocked once approved (usually within 24 hours).</p>
+              </div>
+            </div>
+          )}
+
+          {kycStatus === 'rejected' || kycStatus === 'none' ? (
+            <div className="mb-6 p-4 rounded-xl bg-danger/10 border border-danger/20 flex gap-3 text-danger items-start">
+              <ShieldX className="w-6 h-6 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold mb-1">Identity Verification Required</h3>
+                <p className="text-sm opacity-90">You must verify your identity before withdrawing funds to comply with AML regulations. Please contact support.</p>
+              </div>
+            </div>
+          ) : kycStatus === 'approved' ? (
+            <div className="mb-6 p-4 rounded-xl bg-success/10 border border-success/20 flex gap-3 text-success items-center">
+              <ShieldCheck className="w-6 h-6 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium">Identity Verified. Withdrawals are enabled.</p>
+              </div>
+            </div>
+          ) : null}
+
           <form onSubmit={handleWithdraw} className="space-y-6 relative z-10">
             <div>
               <label className="text-sm font-medium text-slate-300 block mb-2">
@@ -152,7 +179,8 @@ export default function Withdraw() {
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.00"
-                  className="w-full bg-navy border border-white/10 rounded-xl pl-12 pr-20 py-4 text-xl font-mono text-white focus:outline-none focus:border-primary/50 transition-colors"
+                  disabled={kycStatus !== 'approved'}
+                  className="w-full bg-navy border border-white/10 rounded-xl pl-12 pr-20 py-4 text-xl font-mono text-white focus:outline-none focus:border-primary/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   required
                 />
                 <button
@@ -188,7 +216,7 @@ export default function Withdraw() {
             <div className="pt-4">
               <button
                 type="submit"
-                disabled={loading || !amount || parseFloat(amount) <= 0 || parseFloat(amount) > availableCash}
+                disabled={loading || !amount || parseFloat(amount) <= 0 || parseFloat(amount) > availableCash || kycStatus !== 'approved'}
                 className="w-full trade-btn bg-white hover:bg-slate-200 text-navy py-4 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (

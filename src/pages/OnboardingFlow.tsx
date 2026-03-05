@@ -12,6 +12,7 @@ const STEPS = ['Account Details', 'Identity Verification'];
 export default function OnboardingFlow() {
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [kycBase64, setKycBase64] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // Form State
@@ -69,11 +70,41 @@ export default function OnboardingFlow() {
       if (!success) return; // Don't advance if creation failed
     }
 
+    if (currentStep === 1) {
+      // Step 2: KYC Upload Check
+      if (!kycBase64) {
+        toast.error('Please upload your ID to continue.');
+        return;
+      }
+      
+      const user = useUserStore.getState().user;
+      if (!user) return;
+      
+      setLoading(true);
+      try {
+        const { error } = await supabase
+          .from('kyc_documents')
+          .insert({
+            user_id: user.id,
+            document_url: kycBase64,
+            status: 'pending'
+          });
+
+        if (error) throw error;
+        useUserStore.getState().setKycStatus('pending');
+        
+        toast.success('Account created and ID submitted for review!');
+        navigate('/dashboard');
+      } catch (err: any) {
+        toast.error(err.message || 'Failed to submit ID.');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(curr => curr + 1);
-    } else {
-      toast.success('Account created successfully! Please fund your account to continue.');
-      navigate('/dashboard');
     }
   };
 
@@ -133,7 +164,7 @@ export default function OnboardingFlow() {
               transition={{ duration: 0.3 }}
             >
               {currentStep === 0 && <StepOne formData={formData} updateForm={updateForm} />}
-              {currentStep === 1 && <StepTwo />}
+              {currentStep === 1 && <StepTwo kycBase64={kycBase64} setKycBase64={setKycBase64} />}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -220,9 +251,50 @@ function StepOne({ formData, updateForm }: { formData: any, updateForm: (f: any,
   );
 }
 
-function StepTwo() {
+function StepTwo({ kycBase64, setKycBase64 }: { kycBase64: string | null, setKycBase64: (val: string | null) => void }) {
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleFile = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file (PNG, JPG, etc.)');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => setKycBase64(event.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const onDragLeave = () => setIsDragging(false);
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const onPaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items;
+    for (const item of items) {
+      if (item.type.indexOf('image') !== -1) {
+        const blob = item.getAsFile();
+        if (blob) handleFile(blob);
+      }
+    }
+  };
+
   return (
-    <div className="space-y-6 text-center">
+    <div className="space-y-6 text-center" onPaste={onPaste}>
       <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary mx-auto mb-4">
         <ShieldCheck className="w-8 h-8" />
       </div>
@@ -233,11 +305,44 @@ function StepTwo() {
         </p>
       </div>
 
-      <div className="border-2 border-dashed border-white/10 hover:border-primary/50 bg-navy/50 rounded-xl p-8 transition-colors cursor-pointer group">
-        <UploadCloud className="w-10 h-10 text-slate-500 group-hover:text-primary mx-auto mb-3 transition-colors" />
-        <p className="text-white font-medium mb-1">Click to upload or drag and drop</p>
-        <p className="text-xs text-slate-500">SVG, PNG, JPG or PDF (max. 5MB)</p>
-      </div>
+      {!kycBase64 ? (
+        <div 
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+          onClick={() => document.getElementById('kyc-upload')?.click()}
+          className={clsx(
+            "border-2 border-dashed bg-navy/50 rounded-xl p-8 transition-all cursor-pointer group flex flex-col items-center justify-center",
+            isDragging ? "border-primary bg-primary/5 scale-[1.02]" : "border-white/10 hover:border-primary/50"
+          )}
+        >
+          <input 
+            type="file" 
+            id="kyc-upload" 
+            className="hidden" 
+            accept="image/*" 
+            onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+          />
+          <UploadCloud className={clsx(
+            "w-10 h-10 mb-3 transition-colors",
+            isDragging ? "text-primary scale-110" : "text-slate-500 group-hover:text-primary"
+          )} />
+          <p className="text-white font-medium mb-1">Click, drag & drop, or paste image here</p>
+          <p className="text-xs text-slate-500">PNG or JPG (max. 5MB)</p>
+        </div>
+      ) : (
+        <div className="relative rounded-xl border border-white/10 bg-navy/50 p-2 overflow-hidden group">
+          <img src={kycBase64} alt="ID Preview" className="w-full h-48 object-cover rounded-lg opacity-80" />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button 
+              onClick={() => setKycBase64(null)}
+              className="bg-danger/90 hover:bg-danger text-white px-4 py-2 rounded-lg font-medium shadow-lg backdrop-blur-sm transition-transform hover:scale-105"
+            >
+              Remove & Re-upload
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
