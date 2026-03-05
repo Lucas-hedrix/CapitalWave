@@ -5,7 +5,8 @@ import {
   ArrowRightLeft, 
   Settings, 
   LogOut,
-  LineChart
+  LineChart,
+  ArrowDownCircle
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -18,7 +19,8 @@ export default function Sidebar({ isOpen }: SidebarProps) {
     { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
     { name: 'Portfolio', icon: Wallet, path: '/portfolio' },
     { name: 'Markets', icon: LineChart, path: '/markets' },
-    { name: 'Transfer', icon: ArrowRightLeft, path: '/transfer' },
+    { name: 'Deposit', icon: ArrowDownCircle, path: '/deposit' },
+    { name: 'Withdraw', icon: ArrowRightLeft, path: '/transfer' },
   ];
 
   return (

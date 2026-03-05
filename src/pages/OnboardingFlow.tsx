@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UploadCloud, CheckCircle2, ChevronRight, Lock, DollarSign, ShieldCheck } from 'lucide-react';
+import { UploadCloud, CheckCircle2, ChevronRight, Lock, ShieldCheck } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useUserStore } from '../store/useUserStore';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
 
-const STEPS = ['Account Details', 'Identity Verification', 'Fund Account'];
+const STEPS = ['Account Details', 'Identity Verification'];
 
 export default function OnboardingFlow() {
   const [currentStep, setCurrentStep] = useState(0);
@@ -72,7 +72,7 @@ export default function OnboardingFlow() {
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(curr => curr + 1);
     } else {
-      toast.success('Account fully funded and active!');
+      toast.success('Account created successfully! Please fund your account to continue.');
       navigate('/dashboard');
     }
   };
@@ -134,7 +134,6 @@ export default function OnboardingFlow() {
             >
               {currentStep === 0 && <StepOne formData={formData} updateForm={updateForm} />}
               {currentStep === 1 && <StepTwo />}
-              {currentStep === 2 && <StepThree />}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -238,42 +237,6 @@ function StepTwo() {
         <UploadCloud className="w-10 h-10 text-slate-500 group-hover:text-primary mx-auto mb-3 transition-colors" />
         <p className="text-white font-medium mb-1">Click to upload or drag and drop</p>
         <p className="text-xs text-slate-500">SVG, PNG, JPG or PDF (max. 5MB)</p>
-      </div>
-    </div>
-  );
-}
-
-function StepThree() {
-  return (
-    <div className="space-y-6">
-      <div className="text-center mb-6">
-        <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-400 mx-auto mb-4">
-          <DollarSign className="w-8 h-8" />
-        </div>
-        <h3 className="text-lg font-semibold text-white">Fund Your Account</h3>
-        <p className="text-sm text-slate-400">Add funds to start trading instantly.</p>
-      </div>
-
-      <div className="space-y-3">
-        <label className="flex items-center p-4 border border-primary bg-primary/5 rounded-xl cursor-pointer">
-          <input type="radio" name="funding" defaultChecked className="hidden" />
-          <div className="w-5 h-5 rounded-full border-[5px] border-primary flex-shrink-0" />
-          <div className="ml-4 flex-1">
-            <span className="block text-white font-medium">Bank Transfer (ACH)</span>
-            <span className="block text-sm text-slate-400">Instant availability up to $50,000</span>
-          </div>
-          <span className="text-sm text-success font-medium">Free</span>
-        </label>
-
-        <label className="flex items-center p-4 border border-white/10 bg-navy hover:bg-white/5 rounded-xl cursor-pointer transition-colors">
-          <input type="radio" name="funding" className="hidden" />
-          <div className="w-5 h-5 rounded-full border-2 border-slate-500 flex-shrink-0" />
-          <div className="ml-4 flex-1">
-            <span className="block text-white font-medium">Wire Transfer</span>
-            <span className="block text-sm text-slate-400">1-2 business days</span>
-          </div>
-          <span className="text-sm text-slate-400">$25 fee</span>
-        </label>
       </div>
     </div>
   );

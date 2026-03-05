@@ -13,7 +13,9 @@ import TradingDashboard from './pages/TradingDashboard';
 import PortfolioScreen from './pages/PortfolioScreen';
 import Login from './pages/Login';
 import Withdraw from './pages/Withdraw';
+import Deposit from './pages/Deposit';
 import AuthGuard from './components/auth/AuthGuard';
+import DepositGuard from './components/auth/DepositGuard';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 
 // Lazy load pages for now, or just placeholders if we haven't built them
@@ -110,16 +112,15 @@ export default function App() {
             <Route path="/login" element={<Login />} />
           </Route>
 
-          <Route element={
-            <AuthGuard>
-              <AppLayout />
-            </AuthGuard>
-          }>
-            <Route path="/dashboard" element={<TradingDashboard />} />
-            <Route path="/portfolio" element={<PortfolioScreen />} />
-            <Route path="/markets" element={<Placeholder title="Markets Overview" />} />
-            <Route path="/transfer" element={<Withdraw />} />
-            <Route path="/settings" element={<Placeholder title="Settings" />} />
+          <Route element={<AuthGuard><Outlet /></AuthGuard>}>
+            <Route path="/deposit" element={<Deposit />} />
+            <Route element={<DepositGuard><AppLayout /></DepositGuard>}>
+              <Route path="/dashboard" element={<TradingDashboard />} />
+              <Route path="/portfolio" element={<PortfolioScreen />} />
+              <Route path="/markets" element={<Placeholder title="Markets Overview" />} />
+              <Route path="/transfer" element={<Withdraw />} />
+              <Route path="/settings" element={<Placeholder title="Settings" />} />
+            </Route>
           </Route>
         </Routes>
       </Router>
