@@ -41,6 +41,18 @@ CREATE TABLE IF NOT EXISTS public.transactions (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
+-- Create Bank Accounts Table
+CREATE TABLE IF NOT EXISTS public.bank_accounts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) NOT NULL,
+  bank_name TEXT NOT NULL,
+  account_number TEXT NOT NULL,
+  account_name TEXT NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.portfolios ENABLE ROW LEVEL SECURITY;
@@ -60,9 +72,18 @@ CREATE POLICY "Users can view own positions." ON public.positions FOR SELECT USI
 CREATE POLICY "Users can insert own positions." ON public.positions FOR INSERT WITH CHECK ( auth.uid() = user_id );
 CREATE POLICY "Users can update own positions." ON public.positions FOR UPDATE USING ( auth.uid() = user_id );
 
+CREATE POLICY "Users can update own transactions." ON public.transactions FOR UPDATE USING ( auth.uid() = user_id );
+
 CREATE POLICY "Users can view own transactions." ON public.transactions FOR SELECT USING ( auth.uid() = user_id );
 CREATE POLICY "Users can insert own transactions." ON public.transactions FOR INSERT WITH CHECK ( auth.uid() = user_id );
-CREATE POLICY "Users can update own transactions." ON public.transactions FOR UPDATE USING ( auth.uid() = user_id );
+
+-- Bank Accounts Policies
+ALTER TABLE public.bank_accounts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view own bank_accounts." ON public.bank_accounts FOR SELECT USING ( auth.uid() = user_id );
+CREATE POLICY "Users can insert own bank_accounts." ON public.bank_accounts FOR INSERT WITH CHECK ( auth.uid() = user_id );
+-- Note: update policy for bank_accounts status changes will be managed via admin/backend. 
+-- For now, allow owners to update details if pending, but this is a simplified version.
+CREATE POLICY "Users can update own bank_accounts." ON public.bank_accounts FOR UPDATE USING ( auth.uid() = user_id );
 
 -- Function to handle new user signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()

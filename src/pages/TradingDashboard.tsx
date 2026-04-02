@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+// @ts-ignore
 import { motion } from 'framer-motion';
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, Star } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useUserStore } from '../store/useUserStore';
 import clsx from 'clsx';
@@ -9,11 +10,11 @@ import toast from 'react-hot-toast';
 
 // Mock Data
 const WATCHLIST = [
-  { symbol: 'BTC', name: 'Bitcoin', price: 64231.50, change: 2.4 },
-  { symbol: 'ETH', name: 'Ethereum', price: 3450.20, change: 1.8 },
-  { symbol: 'SOL', name: 'Solana', price: 145.60, change: -5.1 },
-  { symbol: 'AAPL', name: 'Apple Inc.', price: 185.92, change: 0.5 },
-  { symbol: 'NVDA', name: 'NVIDIA Corp.', price: 875.28, change: 4.2 },
+  { symbol: 'BTC', name: 'Bitcoin', price: 64231.50, change: 2.4, image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png' },
+  { symbol: 'ETH', name: 'Ethereum', price: 3450.20, change: 1.8, image: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png' },
+  { symbol: 'SOL', name: 'Solana', price: 145.60, change: -5.1, image: 'https://assets.coingecko.com/coins/images/4128/small/solana.png' },
+  { symbol: 'AAPL', name: 'Apple Inc.', price: 185.92, change: 0.5, image: 'https://upload.wikimedia.org/wikipedia/commons/3/31/Apple_logo_white.svg' },
+  { symbol: 'NVDA', name: 'NVIDIA Corp.', price: 875.28, change: 4.2, image: 'https://www.vectorlogo.zone/logos/nvidia/nvidia-icon.svg' },
 ];
 
 const generateChartData = () => {
@@ -33,6 +34,28 @@ export default function TradingDashboard() {
   const [isBuying, setIsBuying] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [cashBalance, setCashBalance] = useState(0);
+  const [marketData, setMarketData] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setMarketData(data);
+      })
+      .catch(console.error);
+  }, []);
+
+  const dynamicWatchlist = WATCHLIST.map(item => {
+    const live = marketData.find(m => m.symbol.toLowerCase() === item.symbol.toLowerCase());
+    return {
+      ...item,
+      price: live ? live.current_price : item.price,
+      change: live ? live.price_change_percentage_24h : item.change,
+      image: live ? live.image : item.image
+    };
+  });
+
+  const currentSelectedAsset = dynamicWatchlist.find(a => a.symbol === selectedAsset.symbol) || selectedAsset;
 
   useEffect(() => {
     if (!user) return;
@@ -69,7 +92,7 @@ export default function TradingDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  const estimatedCost = (parseFloat(quantity) || 0) * selectedAsset.price;
+  const estimatedCost = (parseFloat(quantity) || 0) * currentSelectedAsset.price;
 
   const handleExecuteTrade = async () => {
     if (!user) {
@@ -92,9 +115,9 @@ export default function TradingDashboard() {
         .insert({
           user_id: user.id,
           type: side,
-          asset_symbol: selectedAsset.symbol,
+          asset_symbol: currentSelectedAsset.symbol,
           quantity: parseFloat(quantity),
-          price: selectedAsset.price,
+          price: currentSelectedAsset.price,
           status: 'Completed'
         });
 
@@ -118,7 +141,7 @@ export default function TradingDashboard() {
         .from('positions')
         .select('*')
         .eq('user_id', user.id)
-        .eq('asset_symbol', selectedAsset.symbol)
+        .eq('asset_symbol', currentSelectedAsset.symbol)
         .single();
 
       if (posData) {
@@ -137,17 +160,17 @@ export default function TradingDashboard() {
           .from('positions')
           .insert({
             user_id: user.id,
-            asset_symbol: selectedAsset.symbol,
-            asset_name: selectedAsset.name,
+            asset_symbol: currentSelectedAsset.symbol,
+            asset_name: currentSelectedAsset.name,
             quantity: parseFloat(quantity),
-            average_entry_price: selectedAsset.price
+            average_entry_price: currentSelectedAsset.price
           });
       } else {
-         throw new Error("You do not own any " + selectedAsset.symbol + " to sell");
+         throw new Error("You do not own any " + currentSelectedAsset.symbol + " to sell");
       }
 
       setCashBalance(newBalance);
-      toast.success(`${side} order for ${quantity} ${selectedAsset.symbol} submitted!`);
+      toast.success(`${side} order for ${quantity} ${currentSelectedAsset.symbol} submitted!`);
       setQuantity('1');
     } catch (err: any) {
       toast.error(err.message || 'Failed to execute trade.');
@@ -172,27 +195,27 @@ export default function TradingDashboard() {
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {WATCHLIST.map((item) => (
+          {dynamicWatchlist.map((item) => (
             <button
               key={item.symbol}
               onClick={() => setSelectedAsset(item)}
               className={clsx(
                 "w-full flex items-center justify-between p-4 border-b border-white/5 hover:bg-white/5 transition-colors",
-                selectedAsset.symbol === item.symbol && "bg-white/5 border-l-2 border-l-primary"
+                currentSelectedAsset.symbol === item.symbol && "bg-white/5 border-l-2 border-l-primary"
               )}
             >
               <div className="flex items-center gap-3">
-                <Star className={clsx("w-4 h-4", selectedAsset.symbol === item.symbol ? "text-primary fill-primary" : "text-slate-500")} />
+                <img src={item.image} alt={item.name} className="w-5 h-5 rounded-full" />
                 <div className="text-left">
                   <div className="text-white font-semibold">{item.symbol}</div>
                   <div className="text-xs text-slate-400">{item.name}</div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-white font-medium">${item.price.toLocaleString()}</div>
+                  <div className="text-white font-medium">${item.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                 <div className={clsx("text-xs flex items-center justify-end font-medium", item.change >= 0 ? "text-success" : "text-danger")}>
                   {item.change >= 0 ? <ArrowUpRight className="w-3 h-3 mr-0.5" /> : <ArrowDownRight className="w-3 h-3 mr-0.5" />}
-                  {Math.abs(item.change)}%
+                  {Math.abs(item.change).toFixed(2)}%
                 </div>
               </div>
             </button>
@@ -205,13 +228,14 @@ export default function TradingDashboard() {
         <div className="p-4 sm:p-6 border-b border-white/5 flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-2xl sm:text-3xl font-bold text-white">{selectedAsset.symbol}</h1>
-              <span className="text-sm text-slate-400 font-medium px-2 py-1 bg-white/5 rounded-md">Crypto</span>
+              <img src={currentSelectedAsset.image} alt={currentSelectedAsset.name} className="w-8 h-8 rounded-full" onError={(e) => (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${currentSelectedAsset.symbol}&background=1e293b&color=fff&rounded=true&bold=true`} />
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">{currentSelectedAsset.symbol}</h1>
+              <span className="text-sm text-slate-400 font-medium px-2 py-1 bg-white/5 rounded-md">Asset</span>
             </div>
             <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-bold text-white">${selectedAsset.price.toLocaleString()}</span>
-              <span className={clsx("text-sm font-medium flex items-center", selectedAsset.change >= 0 ? "text-success" : "text-danger")}>
-                {selectedAsset.change >= 0 ? '+' : ''}{selectedAsset.change}% Today
+              <span className="text-3xl font-bold text-white">${currentSelectedAsset.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              <span className={clsx("text-sm font-medium flex items-center", currentSelectedAsset.change >= 0 ? "text-success" : "text-danger")}>
+                {currentSelectedAsset.change >= 0 ? '+' : ''}{currentSelectedAsset.change.toFixed(2)}% Today
               </span>
             </div>
           </div>
@@ -236,8 +260,8 @@ export default function TradingDashboard() {
             <AreaChart data={chartData} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={selectedAsset.change >= 0 ? '#10b981' : '#ef4444'} stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor={selectedAsset.change >= 0 ? '#10b981' : '#ef4444'} stopOpacity={0}/>
+                  <stop offset="5%" stopColor={currentSelectedAsset.change >= 0 ? '#10b981' : '#ef4444'} stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor={currentSelectedAsset.change >= 0 ? '#10b981' : '#ef4444'} stopOpacity={0}/>
                 </linearGradient>
               </defs>
               <Tooltip 
@@ -247,7 +271,7 @@ export default function TradingDashboard() {
               <Area 
                 type="monotone" 
                 dataKey="price" 
-                stroke={selectedAsset.change >= 0 ? '#10b981' : '#ef4444'} 
+                stroke={currentSelectedAsset.change >= 0 ? '#10b981' : '#ef4444'} 
                 strokeWidth={2}
                 fillOpacity={1} 
                 fill="url(#colorPrice)" 
@@ -308,7 +332,7 @@ export default function TradingDashboard() {
                 <label className="text-xs text-slate-400 font-medium">Limit Price</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
-                  <input type="number" defaultValue={selectedAsset.price} className="w-full bg-navy border border-white/10 rounded-lg pl-7 pr-3 py-2.5 text-white focus:outline-none focus:border-primary transition-colors font-medium" />
+                  <input type="number" defaultValue={currentSelectedAsset.price} className="w-full bg-navy border border-white/10 rounded-lg pl-7 pr-3 py-2.5 text-white focus:outline-none focus:border-primary transition-colors font-medium" />
                 </div>
               </div>
             )}
@@ -326,7 +350,7 @@ export default function TradingDashboard() {
                   className="w-full bg-navy border border-white/10 rounded-lg pl-3 pr-16 py-2.5 text-white focus:outline-none focus:border-primary transition-colors font-medium" 
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">
-                  {selectedAsset.symbol}
+                  {currentSelectedAsset.symbol}
                 </span>
               </div>
             </div>
@@ -365,7 +389,7 @@ export default function TradingDashboard() {
               isBuying ? "bg-success hover:bg-emerald-400 shadow-success/20" : "bg-danger hover:bg-rose-400 shadow-danger/20"
             )}
           >
-            {isProcessing ? 'Processing...' : `${isBuying ? 'Buy' : 'Sell'} ${selectedAsset.symbol}`}
+            {isProcessing ? 'Processing...' : `${isBuying ? 'Buy' : 'Sell'} ${currentSelectedAsset.symbol}`}
           </motion.button>
         </div>
       </div>

@@ -20,6 +20,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AuthGuard from './components/auth/AuthGuard';
 import DepositGuard from './components/auth/DepositGuard';
 import AdminGuard from './components/auth/AdminGuard';
+import DemoDashboard from './pages/DemoDashboard';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 
 // Lazy load pages for now, or just placeholders if we haven't built them
@@ -115,6 +116,7 @@ export default function App() {
             <Route path="/onboarding" element={<OnboardingFlow />} />
             <Route path="/login" element={<Login />} />
           </Route>
+          <Route path="/demo" element={<DemoDashboard />} />
 
           <Route element={<AuthGuard><Outlet /></AuthGuard>}>
             <Route path="/deposit" element={<Deposit />} />
@@ -124,6 +126,8 @@ export default function App() {
             <Route element={<DepositGuard><AppLayout /></DepositGuard>}>
               <Route path="/dashboard" element={<TradingDashboard />} />
               <Route path="/portfolio" element={<PortfolioScreen />} />
+              <Route path="/assets" element={<PortfolioScreen />} />
+              <Route path="/watchlist" element={<TradingDashboard />} />
               <Route path="/markets" element={<Markets />} />
               <Route path="/transfer" element={<Withdraw />} />
               <Route path="/settings" element={<Placeholder title="Settings" />} />

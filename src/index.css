@@ -1,20 +1,22 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", "Roboto", system-ui, sans-serif;
-  --color-navy: #0a0e17;
-  --color-navy-light: #121826;
-  --color-navy-lighter: #1a2235;
+  --font-sans: "Inter", "Outfit", "Roboto", system-ui, sans-serif;
+  --color-navy: #050811;
+  --color-navy-light: #0d1326;
+  --color-navy-lighter: #151f38;
   --color-success: #10b981;
   --color-danger: #ef4444;
+  --color-warning: #f59e0b;
   --color-primary: #3b82f6;
   --color-primary-hover: #2563eb;
+  --color-purple: #8b5cf6;
 }
 
 @layer base {
   :root {
     color-scheme: dark;
-    --background: #0a0e17;
+    --background: #050811;
     --foreground: #f8fafc;
   }
 
@@ -22,14 +24,65 @@
     background-color: var(--background);
     color: var(--foreground);
     @apply antialiased min-h-screen selection:bg-primary/30;
+    /* Custom scrollbar for webkit */
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
   }
 }
 
 @layer utilities {
   .glass-panel {
-    @apply bg-navy-light/80 backdrop-blur-md border border-white/5 rounded-xl;
+    @apply bg-navy-light/40 backdrop-blur-xl border border-white/5 rounded-2xl shadow-[0_4px_30px_rgba(0,0,0,0.1)] transition-all;
   }
+  
+  .glass-panel:hover {
+    @apply bg-white/5 border-white/10 shadow-[0_8px_40px_rgba(59,130,246,0.1)];
+  }
+
   .trade-btn {
-    @apply transition-all active:scale-95 font-medium rounded-lg px-4 py-2 flex items-center justify-center;
+    @apply transition-all active:scale-95 font-semibold rounded-xl px-4 py-2 flex items-center justify-center;
   }
+  
+  .glow-text {
+    text-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

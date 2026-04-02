@@ -5,9 +5,10 @@ import clsx from 'clsx';
 import toast from 'react-hot-toast';
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'Deposits' | 'KYC'>('Deposits');
+  const [activeTab, setActiveTab] = useState<'Deposits' | 'KYC' | 'Banks'>('Deposits');
   const [deposits, setDeposits] = useState<any[]>([]);
   const [kycdocs, setKycdocs] = useState<any[]>([]);
+  const [banks, setBanks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -39,6 +40,14 @@ export default function AdminDashboard() {
 
       if (kycError) throw kycError;
       setKycdocs(kycData || []);
+
+      const { data: bankData, error: bankError } = await supabase
+        .from('bank_accounts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (bankError) throw bankError;
+      setBanks(bankData || []);
 
     } catch (error: any) {
       console.error('Error fetching admin data:', error);
@@ -88,6 +97,28 @@ export default function AdminDashboard() {
      } catch (error: any) {
        console.error('Update failed:', error);
        toast.error('Failed to update KYC');
+       fetchAdminData(); // revert
+     }
+  };
+
+  const handleUpdateBank = async (id: string, newStatus: string) => {
+     // Optimistic UI update
+     setBanks(prev => prev.map(d => d.id === id ? { ...d, status: newStatus } : d));
+    
+     try {
+       const { data, error } = await supabase
+         .from('bank_accounts')
+         .update({ status: newStatus })
+         .eq('id', id)
+         .select();
+ 
+       if (error) throw error;
+       if (!data || data.length === 0) throw new Error('Update blocked by RLS');
+
+       toast.success(`Bank Account marked as ${newStatus}`);
+     } catch (error: any) {
+       console.error('Update failed:', error);
+       toast.error('Failed to update Bank Account');
        fetchAdminData(); // revert
      }
   };
@@ -144,6 +175,20 @@ export default function AdminDashboard() {
           {kycdocs.filter(d => d.status === 'pending').length > 0 && (
             <span className="ml-2 bg-amber-500/20 text-amber-500 text-xs px-2 py-0.5 rounded-full">
               {kycdocs.filter(d => d.status === 'pending').length}
+            </span>
+          )}
+        </button>
+        <button 
+          onClick={() => setActiveTab('Banks')}
+          className={clsx(
+            "pb-3 text-sm font-semibold transition-colors border-b-2",
+            activeTab === 'Banks' ? "border-primary text-white" : "border-transparent text-slate-400 hover:text-slate-300"
+          )}
+        >
+          Linked Banks
+          {banks.filter(d => d.status === 'pending').length > 0 && (
+            <span className="ml-2 bg-amber-500/20 text-amber-500 text-xs px-2 py-0.5 rounded-full">
+              {banks.filter(d => d.status === 'pending').length}
             </span>
           )}
         </button>
@@ -218,7 +263,7 @@ export default function AdminDashboard() {
                   </tr>
                 ))
               )
-            ) : (
+            ) : activeTab === 'KYC' ? (
               kycdocs.filter(d => d.id.includes(searchQuery) || d.user_id.includes(searchQuery)).length === 0 ? (
                 <tr><td colSpan={6} className="p-8 text-center text-slate-400">No KYC documents found.</td></tr>
               ) : (
@@ -264,7 +309,49 @@ export default function AdminDashboard() {
                   </tr>
                 ))
               )
-            )}
+            ) : activeTab === 'Banks' ? (
+               banks.filter(d => d.id.includes(searchQuery) || d.user_id.includes(searchQuery)).length === 0 ? (
+                 <tr><td colSpan={6} className="p-8 text-center text-slate-400">No linked bank accounts found.</td></tr>
+               ) : (
+                 banks.filter(d => d.id.includes(searchQuery) || d.user_id.includes(searchQuery)).map(bank => (
+                   <tr key={bank.id} className="hover:bg-white/5 transition-colors">
+                     <td className="p-4 text-sm text-slate-400">{new Date(bank.created_at).toLocaleString()}</td>
+                     <td className="p-4 text-xs font-mono text-slate-500 max-w-[150px] truncate" title={bank.user_id}>{bank.user_id}</td>
+                     <td className="p-4 text-white">
+                       <p className="font-bold">{bank.bank_name}</p>
+                       <p className="text-xs text-slate-400">{bank.account_name}</p>
+                     </td>
+                     <td className="p-4 text-slate-400 font-mono text-sm">
+                       {bank.account_number}
+                     </td>
+                     <td className="p-4">
+                       <span className={clsx(
+                         "px-2.5 py-1 text-xs font-bold rounded-md inline-flex items-center gap-1",
+                         bank.status === 'approved' ? "bg-emerald-500/20 text-emerald-400" :
+                         bank.status === 'rejected' ? "bg-danger/20 text-danger" : "bg-amber-500/20 text-amber-500"
+                       )}>
+                         {bank.status === 'pending' && <Clock className="w-3 h-3" />}
+                         {bank.status === 'approved' && <CheckCircle2 className="w-3 h-3" />}
+                         {bank.status === 'rejected' && <XCircle className="w-3 h-3" />}
+                         {bank.status.toUpperCase()}
+                       </span>
+                     </td>
+                     <td className="p-4 text-right space-x-2">
+                        {bank.status === 'pending' && (
+                          <>
+                           <button onClick={() => handleUpdateBank(bank.id, 'approved')} className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-lg transition-colors">
+                             Approve
+                           </button>
+                           <button onClick={() => handleUpdateBank(bank.id, 'rejected')} className="px-3 py-1.5 bg-danger/10 hover:bg-danger/20 text-danger text-xs font-bold rounded-lg transition-colors">
+                             Reject
+                           </button>
+                          </>
+                        )}
+                     </td>
+                   </tr>
+                 ))
+               )
+            ) : null}
           </tbody>
         </table>
       </div>

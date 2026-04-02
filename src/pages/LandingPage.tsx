@@ -108,7 +108,7 @@ export default function LandingPage() {
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link 
-              to="/dashboard"
+              to="/demo"
               className="flex items-center gap-2 bg-transparent text-white border border-white/20 font-bold text-lg px-8 py-4 rounded-xl hover:bg-white/5 transition-all w-full sm:w-auto justify-center"
             >
               Explore Platform

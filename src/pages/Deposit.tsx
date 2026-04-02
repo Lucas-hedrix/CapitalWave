@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+// @ts-ignore
 import { motion } from 'framer-motion';
 import { UploadCloud, Copy, CheckCircle2, AlertCircle, X, ChevronRight, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +14,12 @@ const WALLETS = {
   BTC: 'bc1qarlvunv38mhewdrdz6mfurjdnq0fe6gdreydlk',
   USDT: 'TYqFs9VwDRvWZtWDbYnCz7k8p69D7EEyV9',
   ETH: '0x40B8D54d0518169f20BEBF0f962DD6161C58e0A0'
+};
+
+const WALLET_IMAGES = {
+  BTC: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
+  USDT: 'https://assets.coingecko.com/coins/images/325/small/Tether.png',
+  ETH: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png'
 };
 
 export default function Deposit() {
@@ -177,14 +184,17 @@ export default function Deposit() {
                         key={c}
                         onClick={() => setCurrency(c)}
                         className={clsx(
-                          "py-3 rounded-xl border font-semibold text-sm transition-all",
+                          "py-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all",
                           currency === c 
                             ? "border-primary bg-primary/10 text-primary shadow-[0_0_15px_rgba(56,189,248,0.15)]" 
-                            : "border-white/10 bg-navy hover:bg-white/5 text-slate-400"
+                            : "border-white/10 bg-navy hover:bg-white/5 text-slate-400 font-medium"
                         )}
                       >
-                        {c}
-                        {c === 'USDT' && <span className="block text-[10px] font-normal opacity-70 mt-0.5">TRC20</span>}
+                        <img src={WALLET_IMAGES[c]} alt={c} className="w-7 h-7 rounded-full drop-shadow-lg" />
+                        <div className="text-sm">
+                          {c}
+                          {c === 'USDT' && <span className="block text-[10px] font-normal opacity-70 mt-0.5">TRC20</span>}
+                        </div>
                       </button>
                     ))}
                   </div>

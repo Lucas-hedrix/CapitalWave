@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Wallet, 
@@ -8,24 +8,40 @@ import {
   LineChart,
   ArrowDownCircle,
   ShieldCheck,
-  ShieldAlert
+  ShieldAlert,
+  Star,
+  Briefcase
 } from 'lucide-react';
 import clsx from 'clsx';
 
 import { useUserStore } from '../../store/useUserStore';
 import { ADMIN_EMAILS } from '../auth/AdminGuard';
+import { supabase } from '../../lib/supabase';
 
 interface SidebarProps {
   isOpen: boolean;
 }
 
 export default function Sidebar({ isOpen }: SidebarProps) {
-  const { user } = useUserStore();
+  const { user, clearSession } = useUserStore();
+  const navigate = useNavigate();
   const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email);
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      clearSession();
+      navigate('/login');
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
+  };
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
     { name: 'Portfolio', icon: Wallet, path: '/portfolio' },
+    { name: 'Assets', icon: Briefcase, path: '/assets' },
+    { name: 'Watchlist', icon: Star, path: '/watchlist' },
     { name: 'Markets', icon: LineChart, path: '/markets' },
     { name: 'Identity (KYC)', icon: ShieldCheck, path: '/kyc' },
     { name: 'Deposit', icon: ArrowDownCircle, path: '/deposit' },
@@ -69,7 +85,10 @@ export default function Sidebar({ isOpen }: SidebarProps) {
           <Settings className="w-5 h-5" />
           Settings
         </NavLink>
-        <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:text-danger hover:bg-danger/10 transition-colors text-sm font-medium">
+        <button 
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:text-danger hover:bg-danger/10 transition-colors text-sm font-medium"
+        >
           <LogOut className="w-5 h-5" />
           Log Out
         </button>

@@ -12,10 +12,10 @@ const PORTFOLIO_DATA = Array.from({ length: 30 }).map((_, i) => ({
 }));
 
 const OPEN_POSITIONS = [
-  { asset: 'BTC', name: 'Bitcoin', qty: 0.45, entry: 61200, current: 64231.50 },
-  { asset: 'ETH', name: 'Ethereum', qty: 4.2, entry: 3100, current: 3450.20 },
-  { asset: 'AAPL', name: 'Apple Inc.', qty: 50, entry: 175.50, current: 185.92 },
-  { asset: 'TSLA', name: 'Tesla Inc.', qty: 25, entry: 205.10, current: 178.43 },
+  { asset: 'BTC', name: 'Bitcoin', qty: 0.45, entry: 61200, current: 64231.50, image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png' },
+  { asset: 'ETH', name: 'Ethereum', qty: 4.2, entry: 3100, current: 3450.20, image: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png' },
+  { asset: 'AAPL', name: 'Apple Inc.', qty: 50, entry: 175.50, current: 185.92, image: 'https://upload.wikimedia.org/wikipedia/commons/3/31/Apple_logo_white.svg' },
+  { asset: 'TSLA', name: 'Tesla Inc.', qty: 25, entry: 205.10, current: 178.43, image: 'https://www.vectorlogo.zone/logos/tesla/tesla-icon.svg' },
 ];
 
 export default function PortfolioScreen() {
@@ -24,6 +24,16 @@ export default function PortfolioScreen() {
   const [cashBalance, setCashBalance] = useState(0);
   const [positions, setPositions] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [marketData, setMarketData] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setMarketData(data);
+      })
+      .catch(console.error);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -90,7 +100,8 @@ export default function PortfolioScreen() {
 
   const calculateTotalValue = () => {
     const positionsValue = positions.reduce((acc, pos) => {
-      const mockPrice = OPEN_POSITIONS.find(p => p.asset === pos.asset_symbol)?.current || Number(pos.average_entry_price);
+      const liveObj = marketData.find(m => m.symbol.toLowerCase() === pos.asset_symbol.toLowerCase());
+      const mockPrice = liveObj?.current_price || OPEN_POSITIONS.find(p => p.asset === pos.asset_symbol)?.current || Number(pos.average_entry_price);
       return acc + (Number(pos.quantity) * mockPrice);
     }, 0);
     return cashBalance + positionsValue;
@@ -98,7 +109,8 @@ export default function PortfolioScreen() {
 
   const calculateOpenPnL = () => {
     return positions.reduce((acc, pos) => {
-      const currentPrice = OPEN_POSITIONS.find(p => p.asset === pos.asset_symbol)?.current || Number(pos.average_entry_price);
+      const liveObj = marketData.find(m => m.symbol.toLowerCase() === pos.asset_symbol.toLowerCase());
+      const currentPrice = liveObj?.current_price || OPEN_POSITIONS.find(p => p.asset === pos.asset_symbol)?.current || Number(pos.average_entry_price);
       return acc + ((currentPrice - Number(pos.average_entry_price)) * Number(pos.quantity));
     }, 0);
   };
@@ -254,16 +266,16 @@ export default function PortfolioScreen() {
                     </tr>
                   )}
                   {positions.map((pos) => {
-                    const currentPrice = OPEN_POSITIONS.find(p => p.asset === pos.asset_symbol)?.current || pos.average_entry_price;
+                    const liveObj = marketData.find(m => m.symbol.toLowerCase() === pos.asset_symbol.toLowerCase());
+                    const currentPrice = liveObj?.current_price || OPEN_POSITIONS.find(p => p.asset === pos.asset_symbol)?.current || pos.average_entry_price;
+                    const image = liveObj?.image || OPEN_POSITIONS.find(p => p.asset === pos.asset_symbol)?.image || `https://ui-avatars.com/api/?name=${pos.asset_symbol}&background=1e293b&color=fff&rounded=true&bold=true`;
                     const pnl = (currentPrice - pos.average_entry_price) * pos.quantity;
                     const pnlPercent = ((currentPrice - pos.average_entry_price) / pos.average_entry_price) * 100;
                     return (
                       <tr key={pos.id} className="hover:bg-white/5 transition-colors group">
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded bg-primary/20 text-primary flex items-center justify-center font-bold text-xs uppercase">
-                              {pos.asset_symbol.substring(0,2)}
-                            </div>
+                            <img src={image} alt={pos.asset_name} className="w-8 h-8 rounded-full bg-navy-lighter cursor-pointer hover:scale-110 transition-transform" />
                             <div>
                               <div className="text-white font-medium">{pos.asset_symbol}</div>
                               <div className="text-xs text-slate-500">{pos.asset_name}</div>

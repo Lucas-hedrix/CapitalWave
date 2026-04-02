@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+// @ts-ignore
 import { motion } from 'framer-motion';
 import { Wallet, ArrowUpRight, AlertCircle, DollarSign, Loader2, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react';
 import { useUserStore } from '../store/useUserStore';
@@ -9,30 +10,75 @@ export default function Withdraw() {
   const { user, kycStatus } = useUserStore();
   const [amount, setAmount] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [bankAccount, setBankAccount] = useState<any>(null);
+  const [showBankForm, setShowBankForm] = useState(false);
+  const [bankForm, setBankForm] = useState({ bankName: '', accountNumber: '', accountName: '' });
   const [fetching, setFetching] = useState(true);
   const [availableCash, setAvailableCash] = useState<number>(0);
 
   useEffect(() => {
-    async function fetchBalance() {
+    async function fetchData() {
       if (!user) return;
       try {
-        const { data, error } = await supabase
+        // Fetch Balance
+        const { data: portfolioData, error: portfolioErr } = await supabase
           .from('portfolios')
           .select('cash_balance')
           .eq('user_id', user.id)
           .single();
           
-        if (error) throw error;
-        if (data) setAvailableCash(data.cash_balance);
+        if (!portfolioErr && portfolioData) setAvailableCash(portfolioData.cash_balance);
+
+        // Fetch user's bank accounts (for simplicity, getting the first active one or pending one)
+        const { data: bankData } = await supabase
+          .from('bank_accounts')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (bankData) {
+          setBankAccount(bankData);
+        }
       } catch (err: any) {
-        console.error('Error fetching balance:', err);
+        console.error('Error fetching withdraw data:', err);
       } finally {
         setFetching(false);
       }
     }
     
-    fetchBalance();
+    fetchData();
   }, [user]);
+
+  const handleAddBank = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('bank_accounts')
+        .insert({
+          user_id: user.id,
+          bank_name: bankForm.bankName,
+          account_number: bankForm.accountNumber,
+          account_name: bankForm.accountName,
+          status: 'pending'
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      setBankAccount(data);
+      setShowBankForm(false);
+      toast.success('Bank account details submitted for review');
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Failed to add bank account');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -193,30 +239,51 @@ export default function Withdraw() {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-4">
               <label className="text-sm font-medium text-slate-300 block">
                 Transfer To
               </label>
-              <div className="flex items-center justify-between p-4 bg-navy border border-white/10 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center">
-                    <Wallet className="w-5 h-5 text-slate-400" />
+              
+              {!bankAccount ? (
+                showBankForm ? (
+                   <div className="p-4 bg-navy-lighter border border-white/10 rounded-xl space-y-4">
+                     <h4 className="font-semibold text-white text-sm">Link Bank Account</h4>
+                     <input type="text" placeholder="Bank Name (e.g., Chase)" value={bankForm.bankName} onChange={e => setBankForm({...bankForm, bankName: e.target.value})} className="w-full bg-navy border border-white/10 rounded-lg p-3 text-sm text-white focus:border-primary/50" required />
+                     <input type="text" placeholder="Account Holder Name" value={bankForm.accountName} onChange={e => setBankForm({...bankForm, accountName: e.target.value})} className="w-full bg-navy border border-white/10 rounded-lg p-3 text-sm text-white focus:border-primary/50" required />
+                     <input type="text" placeholder="Account Number" value={bankForm.accountNumber} onChange={e => setBankForm({...bankForm, accountNumber: e.target.value})} className="w-full bg-navy border border-white/10 rounded-lg p-3 text-sm text-white focus:border-primary/50" required />
+                     <div className="flex gap-2 pt-2">
+                       <button type="button" onClick={() => setShowBankForm(false)} className="flex-1 py-2 text-sm text-slate-400 hover:text-white transition-colors">Cancel</button>
+                       <button type="button" onClick={handleAddBank} disabled={loading || !bankForm.bankName || !bankForm.accountNumber} className="flex-1 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-semibold transition-all">Submit Details</button>
+                     </div>
+                   </div>
+                ) : (
+                  <button type="button" onClick={() => setShowBankForm(true)} className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-white/20 hover:border-primary/50 hover:bg-primary/5 rounded-xl text-slate-400 hover:text-white transition-all">
+                    <Wallet className="w-5 h-5" />
+                    <span>Link a Bank Account</span>
+                  </button>
+                )
+              ) : (
+                <div className="flex items-center justify-between p-4 bg-navy-lighter border border-white/10 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <Wallet className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-white font-medium text-sm">{bankAccount.bank_name}</p>
+                      <p className="text-slate-400 text-xs font-mono">**** {bankAccount.account_number.slice(-4)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-white font-medium text-sm">Chase Checking</p>
-                    <p className="text-slate-400 text-xs font-mono">**** 4301</p>
-                  </div>
+                  {bankAccount.status === 'pending' && <span className="text-xs font-medium text-warning px-2 py-1 bg-warning/10 rounded-md">Pending Approval</span>}
+                  {bankAccount.status === 'approved' && <span className="text-xs font-medium text-success px-2 py-1 bg-success/10 rounded-md">Approved</span>}
+                  {bankAccount.status === 'rejected' && <span className="text-xs font-medium text-danger px-2 py-1 bg-danger/10 rounded-md">Rejected</span>}
                 </div>
-                <div className="text-xs font-medium text-success px-2 py-1 bg-success/10 rounded-md">
-                  Confirmed
-                </div>
-              </div>
+              )}
             </div>
 
             <div className="pt-4">
               <button
                 type="submit"
-                disabled={loading || !amount || parseFloat(amount) <= 0 || parseFloat(amount) > availableCash || kycStatus !== 'approved'}
+                disabled={loading || !amount || parseFloat(amount) <= 0 || parseFloat(amount) > availableCash || kycStatus !== 'approved' || !bankAccount || bankAccount.status !== 'approved'}
                 className="w-full trade-btn bg-white hover:bg-slate-200 text-navy py-4 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (

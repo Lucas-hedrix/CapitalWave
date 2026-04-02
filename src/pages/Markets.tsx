@@ -11,6 +11,7 @@ interface CryptoData {
   price_change_percentage_24h: number;
   total_volume: number;
   market_cap: number;
+  image: string;
 }
 
 export default function Markets() {
@@ -112,7 +113,7 @@ export default function Markets() {
                     <td className="p-6">
                       <div className="flex items-center gap-3">
                         <img 
-                          src={`https://assets.coingecko.com/coins/images/${index + 1}/small/${crypto.symbol}.png`} 
+                          src={crypto.image} 
                           alt={crypto.name}
                           onError={(e) => {
                             // Fallback if image fails to load
